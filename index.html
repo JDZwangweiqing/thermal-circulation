@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>热力环流形成过程演示（图a→b→c）</title>
+<style>
+  :root{
+    --bg:#eef2f7; --card:#fff; --line:#dde5ee;
+    --ink:#1f2b38; --ink2:#5b6b7c; --ink3:#8d9bab;
+    --hot:#d9553c; --cold:#2b6cb0; --accent:#2f6f9e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%, #f7fafd 0%, var(--bg) 60%);
+    color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:26px 20px 40px;
+  }
+  .app{max-width:1400px;margin:0 auto;}
+  header{margin-bottom:16px;}
+  h1{font-size:23px;margin:0 0 6px;letter-spacing:.5px;}
+  h1 .dot{color:var(--hot);}
+  .sub{margin:0;color:var(--ink2);font-size:13.5px;letter-spacing:.3px;}
+  .sub b{color:var(--hot);font-weight:600;}
+  .sub i{color:var(--cold);font-style:normal;font-weight:600;}
+
+  main{display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:18px;align-items:start;}
+  @media (max-width:1120px){ main{grid-template-columns:minmax(0,1fr);} }
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+        box-shadow:0 8px 26px -18px rgba(31,43,56,.35);}
+  .stage{padding:12px 12px 0;overflow:hidden;}
+  canvas{width:100%;display:block;aspect-ratio:1100/700;border-radius:10px;}
+  .chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:12px 14px 15px;}
+  .chip{font-size:12.5px;padding:6px 11px;border-radius:999px;background:#f2f6fa;color:var(--ink2);
+        border:1px solid transparent;transition:all .35s ease;white-space:nowrap;}
+  .chip.on{background:#e8f1f8;color:#1c5578;border-color:#b9d5e8;font-weight:600;}
+  .chip.on.hot{background:#fdeee9;color:#b8402a;border-color:#f2c3b6;}
+  .chain .arw{color:#c3cfda;font-size:12px;}
+
+  .panel{display:flex;flex-direction:column;gap:12px;}
+  .steps{padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .step{display:flex;gap:10px;align-items:flex-start;padding:10px 11px;border-radius:11px;cursor:pointer;
+        border:1px solid transparent;background:#f8fafc;transition:all .25s ease;}
+  .step:hover{background:#f1f6fb;}
+  .step .no{flex:0 0 24px;height:24px;border-radius:8px;background:#e6edf4;color:#5d7286;
+            display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;transition:all .25s ease;}
+  .step .tt{font-size:13.5px;font-weight:600;margin-bottom:3px;}
+  .step .tag{display:inline-block;font-size:10.5px;color:#b0703f;background:#faf0e4;border-radius:5px;
+             padding:1px 6px;margin-left:6px;vertical-align:1px;font-weight:600;}
+  .step .dd{font-size:12px;color:var(--ink2);line-height:1.55;}
+  .step.active{background:#fff;border-color:#bcd8ec;box-shadow:0 6px 18px -14px rgba(43,108,176,.6);}
+  .step.active .no{background:var(--accent);color:#fff;}
+  .step.active .tt{color:#1c5578;}
+
+  .controls{padding:12px;display:flex;flex-direction:column;gap:11px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  button{font-family:inherit;font-size:13px;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+         background:#fff;color:var(--ink);padding:9px 13px;transition:all .2s ease;}
+  button:hover{background:#f4f8fb;border-color:#c8dced;}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;flex:1;}
+  button.primary:hover{background:#28638f;}
+  .sw{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);cursor:pointer;user-select:none;}
+  .sw input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;}
+  .spd{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink2);}
+  .spd input[type=range]{flex:1;accent-color:var(--accent);}
+  .note{padding:12px 14px;font-size:12.5px;line-height:1.75;color:var(--ink2);
+        border-left:3px solid #cfe2f0;background:#fafcfd;border-radius:0 10px 10px 0;}
+  .note b{color:#1c5578;}
+  .note .hot{color:var(--hot);font-weight:600;}
+  .note .cold{color:var(--cold);font-weight:600;}
+  .ttl{font-size:12.5px;font-weight:700;color:var(--ink3);letter-spacing:1px;padding:2px 2px 0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>热力环流形成过程演示<span class="dot"> ·</span></h1>
+    <p class="sub">图a 均匀大气 → 图b <b>冷热不均·垂直运动</b> → 同一水平面<i>气压差异</i>（等压面弯曲）→ 高空<b>先产生水平运动</b> → 近地面<b>气压变化</b> → 图c <b>近地面回流·闭合环流</b></p>
+  </header>
+
+  <main>
+    <section class="card stage">
+      <canvas id="cv" width="2040" height="1298"></canvas>
+      <div class="chain" id="chain"><span class="chip">图a：均匀大气</span><span class="arw">▸</span><span class="chip">图b：冷热不均·垂直运动</span><span class="arw">▸</span><span class="chip">同一水平面气压差异</span><span class="arw">▸</span><span class="chip">高空：空气水平运动</span><span class="arw">▸</span><span class="chip">近地面气压变化</span><span class="arw">▸</span><span class="chip on hot">近地面回流·闭合环流</span></div>
+    </section>
+
+    <aside class="panel">
+      <div class="card">
+        <div class="ttl" style="padding:14px 14px 0;">形成过程六步</div>
+        <div class="steps" id="steps"><div class="step"><div class="no">1</div><div><div class="tt">均匀静止的大气<span class="tag">图a</span></div><div class="dd">假设地表均匀、大气静止：等压面相互平行，同一水平面上各处气压相等。</div></div></div><div class="step"><div class="no">2</div><div><div class="tt">地面冷热不均 → 空气垂直运动<span class="tag">图b</span></div><div class="dd">A 地受热多，空气膨胀上升；B、C 地受热少，空气冷却收缩下沉。</div></div></div><div class="step"><div class="no">3</div><div><div class="tt">同一水平面产生气压差异<span class="tag">等压面弯曲</span></div><div class="dd">高空：A 上空堆积成高压，B、C 上空流失成低压；此时近地面气压尚未变化。</div></div></div><div class="step"><div class="no">4</div><div><div class="tt">高层大气先产生水平运动<span class="tag">高空</span></div><div class="dd">A 上空为高压、B、C 上空为低压，高空大气先行运动：由 A 上空流向 B、C 上空。</div></div></div><div class="step"><div class="no">5</div><div><div class="tt">近地面气压发生变化<span class="tag">气压变化</span></div><div class="dd">中心流出区空气质量损失，近地面形成低气压；两侧空气质量增加，低空气压增大。</div></div></div><div class="step active"><div class="no">6</div><div><div class="tt">近地面回流，闭合环流形成<span class="tag">图c</span></div><div class="dd">近地面大气在水平气压梯度力作用下由两侧流向中心，与高空首尾相接，构成闭合热力环流圈。</div></div></div></div>
+      </div>
+
+      <div class="card controls">
+        <div class="row">
+          <button class="primary" id="play">⏸ 暂停</button>
+          <button id="reset">⟲ 重置</button>
+        </div>
+        <div class="row">
+          <button id="prev" style="flex:1">上一步</button>
+          <button id="next" style="flex:1">下一步</button>
+        </div>
+        <label class="sw"><input type="checkbox" id="iso" checked="checked"> 显示等压面</label>
+        <div class="spd"><span>速度</span><input type="range" id="speed" min="0.4" max="2" step="0.1" value="1"><span id="spdv">1.0×</span></div>
+      </div>
+
+      <div class="note" id="note"><b>第四步 · 闭合环流：</b>近地面出现<b>水平气压梯度</b>，大气由两侧（高压）流向中心（低压）（橙色箭头）——与高空水平气流、垂直运动首尾相接，<b>构成闭合热力环流圈</b>，这就是热力环流。</div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= 基础参数 ================= */
+const W = 1100, H = 700;
+const GT = 520;                       // 地面
+const XB = 240, XA = 540, XC = 840;   // B、A、C 三地
+const T = 160, B = 440, CR = 55;      // 环流通道上下边与圆角（顶部达高空等压面附近）
+const FONT = '"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
+const SERIF = 'Georgia,"Times New Roman",serif';
+const clamp = (v,a,b)=>v<a?a:(v>b?b:v);
+
+/* 颜色（对齐教材箭头配色） */
+const C_RISE='#e0763c', C_SINK='#8fa8bd', C_TOP='#4a7fb5', C_SURF='#e0763c';
+const C_HIGH='#c94f34', C_LOW='#2e6fa8';
+
+const GRP_COLOR = {rise:C_RISE, sink:C_SINK, top:C_TOP, surf:C_SURF};
+const grpAlpha = g => (g==='rise'||g==='sink') ? S.A.vert : (g==='top' ? S.A.top : S.A.surf);
+
+/* ================= 环流通道几何 ================= */
+function arcPt(cx,cy,a0,a1,u){
+  const a = a0 + (a1-a0)*u;
+  return {x:cx+Math.cos(a)*CR, y:cy+Math.sin(a)*CR, a:a+Math.PI/2};
+}
+/* 标准单元：在 xL 处上升 → 顶面向右 → 在 xR 处下沉 → 底面向左 */
+function makeLoop(xL,xR){
+  const vert=(B-CR)-(T+CR), horz=(xR-CR)-(xL+CR), arc=Math.PI*CR/2;
+  const pieces=[
+    {len:vert,grp:'rise',at:u=>({x:xL,y:B-CR-u*vert,a:-Math.PI/2})},
+    {len:arc, grp:'top', at:u=>arcPt(xL+CR,T+CR,Math.PI,1.5*Math.PI,u)},
+    {len:horz,grp:'top', at:u=>({x:xL+CR+u*horz,y:T,a:0})},
+    {len:arc, grp:'top', at:u=>arcPt(xR-CR,T+CR,1.5*Math.PI,2*Math.PI,u)},
+    {len:vert,grp:'sink',at:u=>({x:xR,y:T+CR+u*vert,a:Math.PI/2})},
+    {len:arc, grp:'surf',at:u=>arcPt(xR-CR,B-CR,0,Math.PI/2,u)},
+    {len:horz,grp:'surf',at:u=>({x:xR-CR-u*horz,y:B,a:Math.PI})},
+    {len:arc, grp:'surf',at:u=>arcPt(xL+CR,B-CR,Math.PI/2,Math.PI,u)}
+  ];
+  const total=pieces.reduce((s,p)=>s+p.len,0);
+  const ranges=[]; let acc=0;
+  for(const p of pieces){ ranges.push({start:acc/total,end:(acc+p.len)/total,grp:p.grp}); acc+=p.len; }
+  return {
+    pieces, total, ranges,
+    at(t){
+      const tt=((t%1)+1)%1;
+      let s=tt*total;
+      for(const p of pieces){
+        if(s<=p.len){ const q=p.at(s/p.len); return {x:q.x,y:q.y,a:q.a,grp:p.grp,t:tt}; }
+        s-=p.len;
+      }
+      const p=pieces[pieces.length-1]; const q=p.at(1);
+      return {x:q.x,y:q.y,a:Math.PI,grp:p.grp,t:tt};
+    },
+    piecePath(ctx,p,steps){
+      steps=steps||16;
+      for(let i=0;i<=steps;i++){ const q=p.at(i/steps); i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y); }
+    }
+  };
+}
+const rightCell = makeLoop(XA,XC);        // A↑ 顶面向右 C↓
+const leftRaw   = makeLoop(XB,XA);        // 先造标准单元再镜像
+const axisL     = (XB+XA)/2;
+const leftCell  = {                        // 镜像：A↑ 顶面向左 B↓
+  pieces:leftRaw.pieces, total:leftRaw.total, ranges:leftRaw.ranges,
+  at(t){ const q=leftRaw.at(t); return {x:2*axisL-q.x, y:q.y, a:Math.PI-q.a, grp:q.grp, t:q.t}; },
+  piecePath(ctx,p,steps){ leftRaw.piecePath(ctx,p,steps); }
+};
+const CELLS=[leftCell,rightCell];
+
+/* 段中点（用于方向箭头） */
+const MID={rise:0.066, top:0.316, sink:0.567, surf:0.816};
+
+/* ================= 等压面 ================= */
+const bell = x => Math.exp(-Math.pow((x-XA)/240,2));
+function isoU(x,def){ return 150 - 34*bell(x)*def; }   // 高空等压面：A 处上凸（高压）
+function isoM(x,def){ return 310 -  8*bell(x)*def; }   // 中间等压面：弯曲幅度介于高空与近地面之间
+function isoL(x,def){ return 478 + 26*bell(x)*def; }   // 近地面等压面：A 处下凹（低压）
+
+/* ================= 画布 ================= */
+const cvs=document.getElementById('cv');
+const ctx=cvs.getContext('2d');
+let scale=1,dpr=1;
+function resize(){
+  const rect=cvs.getBoundingClientRect();
+  dpr=window.devicePixelRatio||1;
+  cvs.width=Math.max(1,Math.round(rect.width*dpr));
+  cvs.height=Math.max(1,Math.round(rect.height*dpr));
+  scale=rect.width/W;
+  ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);
+}
+window.addEventListener('resize',resize);
+
+/* ================= 状态 ================= */
+const S={step:1, playing:true, autoT:0, speed:1, showIso:true,
+         A:{vert:0,pres:0,top:0,surfP:0,surf:0}, dotP:0, arrowT:0, particles:[]};
+for(const c of CELLS) for(let i=0;i<16;i++) S.particles.push({cell:c, t:i/16});
+window.__S = S;   /* 调试句柄：便于自动化测试设定箭头相位 */
+
+/* 空气分子：初始近地面密、高空稀（每隔一个高度取一层），同一高度三地数目相同；
+   垂直运动时只有"部分分子"移动：受热柱底部一些分子上移（红色突出）、
+   受冷柱顶部一些分子下移（蓝色突出）；流出分子在层内均匀散布、不集中，
+   停靠后每层重新均匀分布；气柱内分子总数始终不变 */
+const LEVELS=[ {y:450,n:16},{y:380,n:15},{y:310,n:13},{y:240,n:12},{y:170,n:10} ];
+const FINAL_A=[12,12,13,13,16];    /* 受热柱 A：低空变稀、高空变密 */
+const FINAL_C=[19,17,11,10,9];     /* 受冷柱 B、C：近地面更密、高空更稀 */
+const DOTS=[];
+function molLayout(cx,counts){
+  const pts=[];
+  const W=190;                                   /* 每层总宽度固定：流出前后完全一致 */
+  counts.forEach(function(n,i){
+    const gap=n>1?W/(n-1):0;                     /* 间距随数目自动压缩，铺满同一宽度 */
+    for(let k=0;k<n;k++) pts.push({x:cx+(k-(n-1)/2)*gap, y:LEVELS[i].y});
+  });
+  return pts;
+}
+[XB,XA,XC].forEach(function(cx){
+  const init=molLayout(cx, LEVELS.map(function(l){return l.n;}));
+  const finN=(cx===XA?FINAL_A:FINAL_C);
+  const fin =molLayout(cx, finN);
+  const movers=[], vacant=[];
+  let base=0, fbase=0;
+  LEVELS.forEach(function(L,i){
+    const ni=L.n, mi=finN[i];
+    if(mi>=ni){
+      /* 该层分子增多：留守者均匀占据终态行位，空出的行位均匀散布，留给上/下移动来的分子 */
+      const stay=new Set();
+      for(let j=0;j<ni;j++) stay.add(ni===1?Math.floor((mi-1)/2):Math.round(j*(mi-1)/(ni-1)));
+      for(let k=0;k<ni;k++){
+        const s=[...stay].sort(function(a,b){return a-b;})[k];
+        init[base+k].t={x:fin[fbase+s].x, y:LEVELS[i].y};
+      }
+      for(let k=0;k<mi;k++) if(!stay.has(k)) vacant.push({x:fin[fbase+k].x, y:LEVELS[i].y, li:i});
+    }else{
+      /* 该层分子减少：被移走的分子在初始行内均匀抽取，不集中 */
+      const loss=ni-mi, movSet=new Set();
+      for(let j=0;j<loss;j++) movSet.add(Math.min(ni-1,Math.floor((j+0.5)*ni/loss)));
+      let s=0;
+      for(let k=0;k<ni;k++){
+        if(movSet.has(k)){ init[base+k].mv=true; movers.push(init[base+k]); }
+        else init[base+k].t={x:fin[fbase+(s++)].x, y:LEVELS[i].y};
+      }
+    }
+    base+=ni; fbase+=mi;
+  });
+  movers.forEach(function(m,i){ m.t={x:vacant[i].x, y:vacant[i].y}; });
+  init.forEach(function(d){
+    DOTS.push({
+      x0:d.x, y0:d.y, x1:d.t.x, y1:d.t.y, cx:cx,
+      mv:!!d.mv, delay:Math.random()*0.5
+    });
+  });
+});
+
+/* 调试句柄（只读用途）：便于自动化测试统计各气柱分子数 */
+window.__DOTS = DOTS;
+
+/* ================= 绘制工具 ================= */
+function txt(s,x,y,o){
+  o=o||{};
+  ctx.save();
+  ctx.globalAlpha=ctx.globalAlpha*(o.alpha===undefined?1:o.alpha);
+  ctx.font=o.font||('15px '+FONT);
+  ctx.fillStyle=o.color||'#33414f';
+  ctx.textAlign=o.align||'center';
+  ctx.textBaseline=o.baseline||'middle';
+  ctx.fillText(s,x,y);
+  ctx.restore();
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);     ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function bigArrow(x1,y1,x2,y2,color,alpha,wid){
+  if(alpha<0.03) return;
+  const ang=Math.atan2(y2-y1,x2-x1), len=Math.hypot(x2-x1,y2-y1);
+  const sw=wid||15;
+  /* 一支完整箭头沿线段真实行进：箭尾起点=1，箭头终点=2。
+     箭尾坐标 t0 由 0 匀速走到 (len-gLen)，此时箭头尖恰好抵达线段末端。 */
+  const gLen=Math.max(46,Math.min(112,len*0.46));   // 箭头总长（含头部）
+  const head=Math.min(30,gLen*0.38);                // 箭头头部长度
+  const body=gLen-head;
+  const travel=Math.max(2,len-gLen);                // 箭尾可走的距离
+  const u=((S.arrowT%1)+1)%1;
+  const fade=Math.max(0,Math.min(1,Math.min(u,1-u)/0.06));
+  if(fade<0.04) return;
+  const t0=u*travel;
+  ctx.save();
+  ctx.globalAlpha=alpha*fade;
+  ctx.translate(x1+Math.cos(ang)*t0, y1+Math.sin(ang)*t0);
+  ctx.rotate(ang);
+  ctx.fillStyle=color;
+  /* 箭杆 */
+  roundRect(0,-sw/2,body,sw,sw/2); ctx.fill();
+  /* 箭头（尖端落在箭头总长末端） */
+  ctx.beginPath();
+  ctx.moveTo(gLen,0);
+  ctx.lineTo(gLen-head,-sw*1.15);
+  ctx.lineTo(gLen-head,sw*1.15);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function arrowHead(x,y,ang,size,color,alpha){
+  if(alpha<0.03) return;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.translate(x,y); ctx.rotate(ang);
+  ctx.beginPath();
+  ctx.moveTo(size,0); ctx.lineTo(-size*0.85,size*0.78); ctx.lineTo(-size*0.5,0); ctx.lineTo(-size*0.85,-size*0.78);
+  ctx.closePath();
+  ctx.fillStyle=color; ctx.fill();
+  ctx.restore();
+}
+/* 气流粒子在每段两端淡入淡出，避免生硬出现/消失 */
+function envAlpha(t,ranges){
+  for(const r of ranges){
+    if(t>=r.start && t<r.end){
+      const u=(t-r.start)/(r.end-r.start);
+      return Math.max(0,Math.min(1,u/0.12,(1-u)/0.12));
+    }
+  }
+  return 1;
+}
+
+/* ================= 主绘制 ================= */
+function draw(dt){
+  const target={vert:S.step>=2?1:0, pres:S.step>=3?1:0, top:S.step>=4?1:0, surfP:S.step>=5?1:0, surf:S.step>=6?1:0};
+  const k=1-Math.exp(-Math.min(dt,0.05)*5.5);
+  for(const key in target) S.A[key]+=(target[key]-S.A[key])*k;
+  if(S.playing) S.arrowT=(S.arrowT+dt*S.speed/2.8)%1;   /* 箭头行进相位：约 2.8s 从起点走到终点 */
+  const A=S.A;
+
+  if(S.playing){
+    S.autoT+=dt*S.speed;
+    if(S.autoT>9){ S.autoT=0; setStep(S.step>=6?1:S.step+1); }
+    for(const p of S.particles) p.t+=dt*S.speed*0.10;
+  }
+
+  ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  /* 天空 */
+  const sky=ctx.createLinearGradient(0,0,0,GT);
+  sky.addColorStop(0,'#e9f3fb'); sky.addColorStop(1,'#f8fcfe');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,GT);
+
+  /* 等压面（第1步为平行直线；高空/中间第3步起弯曲，近地面第5步气压变化后才弯曲） */
+  if(S.showIso){
+    const def=A.pres, defS=A.surfP;
+    ctx.save();
+    ctx.lineWidth=2.2; ctx.strokeStyle='#4a7fb5';
+    ctx.beginPath();
+    for(let x=70;x<=1030;x+=10){ const y=isoU(x,def); x===70?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+    ctx.beginPath();
+    for(let x=70;x<=1030;x+=10){ const y=isoL(x,defS); x===70?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+    /* 中间等压面：弯曲幅度介于高空与近地面之间（随高度过渡） */
+    ctx.beginPath();
+    for(let x=70;x<=1030;x+=10){ const y=isoM(x,def); x===70?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+    txt('等压面',1038,isoU(1030,def),{font:'600 15px '+FONT,color:'#3d6f9e',align:'left',alpha:0.85});
+    txt('等压面',1038,isoM(1030,def),{font:'600 15px '+FONT,color:'#3d6f9e',align:'left',alpha:0.85});
+    txt('等压面',1038,isoL(1030,defS),{font:'600 15px '+FONT,color:'#3d6f9e',align:'left',alpha:0.85});
+    /* 受热前的原始位置（虚线），弯曲后显示 */
+    if(def>0.02 || defS>0.02){
+      ctx.save();
+      ctx.globalAlpha*=Math.max(def,defS)*0.8;
+      ctx.setLineDash([8,7]); ctx.lineWidth=1.6; ctx.strokeStyle='#e79c92';
+      if(def>0.02){
+        ctx.beginPath(); ctx.moveTo(70,150); ctx.lineTo(1030,150); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(70,310); ctx.lineTo(1030,310); ctx.stroke();
+      }
+      if(defS>0.02){
+        ctx.beginPath(); ctx.moveTo(70,478); ctx.lineTo(1030,478); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      txt('受热前位置',70,138,{font:'12px '+FONT,color:'#d98a80',align:'left'});
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  /* 地面 */
+  const gd=ctx.createLinearGradient(0,GT,0,H);
+  gd.addColorStop(0,'#f0e0ba'); gd.addColorStop(1,'#e2cb98');
+  ctx.fillStyle=gd; ctx.fillRect(0,GT,W,H-GT);
+  if(A.vert>0.02){                       /* A 地受热 */
+    ctx.save();
+    ctx.globalAlpha=A.vert;
+    const warm=ctx.createRadialGradient(XA,GT+10,20,XA,GT+10,330);
+    warm.addColorStop(0,'rgba(228,112,52,.5)'); warm.addColorStop(1,'rgba(228,112,52,0)');
+    ctx.fillStyle=warm; ctx.fillRect(XA-340,GT,680,H-GT);
+    ctx.restore();
+  }
+  ctx.fillStyle='rgba(255,255,255,.55)'; ctx.fillRect(0,GT-1.5,W,3);
+
+  txt('B',XB,GT+42,{font:'italic 700 26px '+SERIF,color:'#c96a2e'});
+  txt('A',XA,GT+42,{font:'italic 700 26px '+SERIF,color:'#c96a2e'});
+  txt('C',XC,GT+42,{font:'italic 700 26px '+SERIF,color:'#c96a2e'});
+  txt('受热',XA+44,GT+40,{font:'600 13px '+FONT,color:'#a8441f',align:'left',alpha:A.vert});
+  txt('冷却',XB-30,GT+40,{font:'600 13px '+FONT,color:'#4a7296',align:'right',alpha:A.vert});
+  txt('冷却',XC+30,GT+40,{font:'600 13px '+FONT,color:'#4a7296',align:'left',alpha:A.vert});
+
+  /* 空气分子：第2步起缓慢移动，只有部分分子（受热柱红色、受冷柱蓝色）移到新的高度层，
+     流出与停靠的位置在层内均匀散布；每根气柱分子总数始终不变 */
+  if(S.playing){
+    const tp=S.step>=2?1:0;
+    if(S.dotP!==tp) S.dotP=clamp(S.dotP+(tp>S.dotP?1:-1)*dt/7,0,1);
+  }
+  for(const d of DOTS){
+    const lp=clamp((S.dotP-d.delay)/(1-d.delay),0,1);
+    const e=lp<0.5 ? 2*lp*lp : 1-Math.pow(-2*lp+2,2)/2;   /* easeInOut */
+    const x=d.x0+(d.x1-d.x0)*e, y=d.y0+(d.y1-d.y0)*e;
+    ctx.globalAlpha=0.75;
+    ctx.fillStyle='#6b8ba8';                                /* 流出前：一律灰蓝，不突出 */
+    ctx.beginPath(); ctx.arc(x,y,2.1,0,7); ctx.fill();
+    if(d.mv && lp>0.02){                                    /* 开始流出后才红/蓝突出 */
+      const hl=clamp(lp/0.18,0,1);
+      ctx.globalAlpha=0.75*hl;
+      ctx.fillStyle=d.cx===XA?'#e0503a':'#2f6fd0';
+      ctx.beginPath(); ctx.arc(x,y,2.7,0,7); ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+
+  /* 垂直运动通道：纯直线（第2步，无弯曲） */
+  function vseg(x,y1,y2,color,alpha){
+    if(alpha<0.02) return;
+    ctx.save();
+    ctx.globalAlpha=alpha*0.26;
+    ctx.lineCap='round'; ctx.lineWidth=16; ctx.strokeStyle=color;
+    ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke();
+    ctx.restore();
+  }
+  vseg(XA,B-CR,T+CR,C_RISE,A.vert);
+  vseg(XB,T+CR,B-CR,C_SINK,A.vert);
+  vseg(XC,T+CR,B-CR,C_SINK,A.vert);
+  /* 水平通道与转角（第4步形成环流时淡入） */
+  for(const cell of CELLS){
+    for(const p of cell.pieces){
+      if(p.grp!=='top'&&p.grp!=='surf') continue;
+      const a=p.grp==='top'?S.A.top:S.A.surf;
+      if(a<0.02) continue;
+      ctx.save();
+      ctx.globalAlpha=a*0.26;
+      ctx.lineCap='round'; ctx.lineWidth=16; ctx.strokeStyle=GRP_COLOR[p.grp];
+      ctx.beginPath(); cell.piecePath(ctx,p); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  for(const p of S.particles){
+    const q=p.cell.at(p.t);
+    const a=grpAlpha(q.grp)*envAlpha(q.t,p.cell.ranges);
+    if(a<0.04) continue;
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.shadowColor=GRP_COLOR[q.grp]; ctx.shadowBlur=9;
+    ctx.fillStyle=GRP_COLOR[q.grp];
+    ctx.beginPath(); ctx.arc(q.x,q.y,4.6,0,7); ctx.fill();
+    ctx.restore();
+  }
+
+  /* 大箭头：垂直运动（第2步）——随环流增高同步加长 */
+  bigArrow(XA,428,XA,268,C_RISE,A.vert,17);      // A 受热上升
+  bigArrow(XB,268,XB,398,C_SINK,A.vert,15);      // B 冷却下沉
+  bigArrow(XC,268,XC,398,C_SINK,A.vert,15);      // C 冷却下沉
+
+  /* 大箭头：高空水平运动（第4步）与近地面回流（第5步） */
+  bigArrow(496,T,368,T,C_TOP,A.top,15);
+  bigArrow(584,T,712,T,C_TOP,A.top,15);
+  bigArrow(368,440,496,440,C_SURF,A.surf,15);
+  bigArrow(712,440,584,440,C_SURF,A.surf,15);
+
+  /* 高 / 低 气压标注：高空第3步起，近地面第5步气压变化后标注（第6步才有回流箭头） */
+  if(A.pres>0.02){
+    txt('低',XB,isoU(XB,A.pres)-28,{font:'700 24px '+FONT,color:C_LOW,alpha:A.pres});
+    txt('低',XC,isoU(XC,A.pres)-28,{font:'700 24px '+FONT,color:C_LOW,alpha:A.pres});
+    txt('高',XA,isoU(XA,A.pres)-28,{font:'700 24px '+FONT,color:C_HIGH,alpha:A.pres});
+    txt('高空',XA-46,isoU(XA,A.pres)-28,{font:'12px '+FONT,color:'#93a3b2',align:'right',alpha:A.pres});
+  }
+  if(A.surfP>0.02){
+    txt('高',XB,462,{font:'700 22px '+FONT,color:C_HIGH,alpha:A.surfP});
+    txt('高',XC,462,{font:'700 22px '+FONT,color:C_HIGH,alpha:A.surfP});
+    txt('低',XA,462,{font:'700 22px '+FONT,color:C_LOW,alpha:A.surfP});
+    txt('近地面',XA-52,462,{font:'12px '+FONT,color:'#93a3b2',align:'right',alpha:A.surfP});
+  }
+
+  /* 第2步标注：高空气压变化（红字，第3步起淡出） */
+  const p2=A.vert*(1-A.pres);
+  if(p2>0.02){
+    txt('气压减小',XB,96,{font:'700 20px '+FONT,color:'#d0483a',alpha:p2});
+    txt('气压增加',XA,96,{font:'700 20px '+FONT,color:'#d0483a',alpha:p2});
+    txt('气压减小',XC,96,{font:'700 20px '+FONT,color:'#d0483a',alpha:p2});
+  }
+
+  /* 第4步文字：先给结论（加粗），再接因果说明（第5步淡出） */
+  const p4t=A.top*(1-A.surfP);
+  if(p4t>0.02){
+    ctx.save();
+    ctx.globalAlpha=p4t;
+    roundRect(165,22,770,42,12);
+    ctx.fillStyle='rgba(255,252,248,.88)'; ctx.fill();
+    ctx.lineWidth=1.2; ctx.strokeStyle='rgba(224,118,60,.5)'; ctx.stroke();
+    ctx.textBaseline='middle'; ctx.textAlign='left';
+    ctx.font='700 16px '+FONT; ctx.fillStyle='#d0483a';
+    const lead='先生成高空水平气流';
+    ctx.fillText(lead,185,43);
+    const lw=ctx.measureText(lead).width;
+    ctx.font='15px '+FONT; ctx.fillStyle='#7a4a2b';
+    ctx.fillText('：高空气压变化，高空大气在水平气压梯度力的作用下，由高气压区向低气压区运动',185+lw,43);
+    ctx.restore();
+  }
+
+  /* 第4步文字：高空水平运动到达两侧上空——净流入、空气质量增加 */
+  const p4=A.top;
+  if(p4>0.02){
+    ['空气净流入','空气质量增加','低空气压增大'].forEach(function(s,i){
+      txt(s,XB+44,194+i*18,{font:'600 14px '+FONT,color:'#b8432f',align:'left',alpha:p4});
+      txt(s,XC-44,194+i*18,{font:'600 14px '+FONT,color:'#b8432f',align:'right',alpha:p4});
+    });
+  }
+  /* 第5步文字：中心流出、近地面气压变化；第6步：近地面回流箭头与闭合环流 */
+  const p5=A.surfP;
+  if(p5>0.02){
+    ['中心空气流出','空气质量损失','近地面形成低气压'].forEach(function(s,i){
+      txt(s,XA-44,194+i*18,{font:'600 14px '+FONT,color:'#2e6fa8',align:'right',alpha:p5});
+    });
+  }
+  const p6=A.surf;
+  if(p6>0.02){
+    ctx.save();
+    ctx.globalAlpha=p6;
+    roundRect(240,622,620,44,12);
+    ctx.fillStyle='rgba(255,252,248,.9)'; ctx.fill();
+    ctx.lineWidth=1.2; ctx.strokeStyle='rgba(224,118,60,.5)'; ctx.stroke();
+    ctx.restore();
+    txt('近地面出现水平气压梯度 → 大气由两侧流向中心，构成闭合环流',550,644,{font:'700 16px '+FONT,color:'#a8441f',alpha:p6});
+  }
+
+  /* 步骤角标 */
+  ctx.save();
+  ctx.globalAlpha=.92;
+  roundRect(W-168,18,148,34,10);
+  ctx.fillStyle='rgba(255,255,255,.88)'; ctx.fill();
+  ctx.lineWidth=1; ctx.strokeStyle='rgba(200,214,228,.9)'; ctx.stroke();
+  txt('第 '+S.step+' 步 / 共 6 步',W-94,35,{font:'600 13px '+FONT,color:'#5d7286'});
+  ctx.restore();
+}
+
+/* ================= 动画循环 ================= */
+let last=performance.now();
+function tick(now){
+  const dt=Math.min((now-last)/1000,0.05);
+  last=now;
+  draw(dt);
+  requestAnimationFrame(tick);
+}
+
+/* ================= 步骤内容 ================= */
+const STEPS=[
+ {t:'均匀静止的大气',tag:'图a',
+  d:'假设地表均匀、大气静止：等压面相互平行，同一水平面上各处气压相等。',
+  n:'<b>图a · 起点：</b>假设地面性质均一、大气静止。观察空气分子：密度<b>由近地面向高空逐渐变稀疏</b>，但<b>同一高度上三地（A、B、C）分子数目相同</b>；各高度等压面水平平行，同一水平面上气压处处相等，大气维持静止。'},
+ {t:'地面冷热不均 → 空气垂直运动',tag:'图b',
+  d:'A 地受热多，空气膨胀上升；B、C 地受热少，空气冷却收缩下沉。',
+  n:'<b>图b · 直接表现：</b>A 地受热多，空气膨胀 → <span class="hot">上升</span>：<b>低空的一部分分子</b>（<span class="hot">红色</span>）缓慢向上运动，均匀地停在上方不同高度层上；B、C 地冷却收缩 → <span class="cold">下沉</span>：<b>高层的一部分分子</b>（<span class="cold">蓝色</span>）向下运动，均匀地停在下方不同高度层上。<br>随后每层分子重新<b>均匀分布</b>。每根气柱分子总数始终不变（本图中为 66 个）——只是高低空数目重新分配，密度出现差异。<br><br><b>高空气压变化</b>：A 上空空气分子堆积 → <span class="hot">气压升高</span>；B、C 上空空气分子流失 → <span class="cold">气压降低</span>。于是高空大气在<b>水平气压梯度力</b>的作用下，由高气压区向低气压区运动——<b>先生成高空水平气流</b>。'},
+ {t:'同一水平面产生气压差异',tag:'等压面弯曲',
+  d:'高空：A 上空堆积成高压，B、C 上空流失成低压；此时近地面气压尚未变化。',
+  n:'<b>高空先行：</b>垂直运动使空气质量在上空重新分配——<span class="hot">A 上空堆积 → 高压</span>、<span class="cold">B、C 上空流失 → 低压</span>，高空等压面随之弯曲：<b>高压处上凸、低压处下凹</b>（虚线为受热前位置）。<br><b>注意：此时近地面气压还没有变化</b>，近地面等压面仍保持水平——要等高空水平运动把空气质量输送开之后，近地面气压才会相应改变（见第 5 步）。'},
+ {t:'高层大气先产生水平运动',tag:'高空',
+  d:'A 上空为高压、B、C 上空为低压，高空大气先行运动：由 A 上空流向 B、C 上空。',
+  n:'<b>第一步 · 高空水平运动：</b>垂直运动使高空出现气压差——A 上空堆积为<span class="hot">高压</span>，B、C 上空流失为<span class="cold">低压</span>。高空大气<b>先产生水平运动</b>：在水平气压梯度力作用下，由 A 上空流向 B、C 上空（蓝色箭头）。<br>当高空气流运动到两侧受冷下沉的上方时：<b>空气净流入，空气质量增加，低空气压增大</b>。'},
+ {t:'近地面气压发生变化',tag:'气压变化',
+  d:'中心流出区空气质量损失，近地面形成低气压；两侧空气质量增加，低空气压增大。',
+  n:'<b>第三步 · 近地面气压变化：</b>高空水平运动把空气质量输送开——中心流出区（A）<b>空气质量损失</b>，对近地面的压强减小，<b>形成低气压</b>；两侧（B、C）<b>空气净流入、空气质量增加</b>，<b>低空气压增大</b>。近地面等压面随之弯曲（虚线为受热前位置）。<br><b>注意：此时近地面还没有水平气流</b>——气压差已经形成，运动即将发生。'},
+ {t:'近地面回流，闭合环流形成',tag:'图c',
+  d:'近地面大气在水平气压梯度力作用下由两侧流向中心，与高空首尾相接，构成闭合热力环流圈。',
+  n:'<b>第四步 · 闭合环流：</b>近地面出现<b>水平气压梯度</b>，大气由两侧（高压）流向中心（低压）（橙色箭头）——与高空水平气流、垂直运动首尾相接，<b>构成闭合热力环流圈</b>，这就是热力环流。'}
+];
+const CHAIN=['图a：均匀大气','图b：冷热不均·垂直运动','同一水平面气压差异','高空：空气水平运动','近地面气压变化','近地面回流·闭合环流'];
+
+const stepsEl=document.getElementById('steps');
+STEPS.forEach(function(s,i){
+  const el=document.createElement('div');
+  el.className='step'+(i===0?' active':'');
+  el.innerHTML='<div class="no">'+(i+1)+'</div><div><div class="tt">'+s.t+'<span class="tag">'+s.tag+'</span></div><div class="dd">'+s.d+'</div></div>';
+  el.addEventListener('click',function(){ setStep(i+1); });
+  stepsEl.appendChild(el);
+});
+const chainEl=document.getElementById('chain');
+CHAIN.forEach(function(c,i){
+  if(i){ const a=document.createElement('span'); a.className='arw'; a.textContent='▸'; chainEl.appendChild(a); }
+  const c2=document.createElement('span');
+  c2.className='chip'; c2.textContent=c;
+  chainEl.appendChild(c2);
+});
+const chips=chainEl.querySelectorAll('.chip');
+
+function setStep(n){
+  S.step=clamp(n,1,6);
+  S.autoT=0;
+  document.querySelectorAll('.step').forEach(function(el,i){ el.classList.toggle('active',i===S.step-1); });
+  document.getElementById('note').innerHTML=STEPS[S.step-1].n;
+  chips.forEach(function(el,i){
+    el.classList.remove('on'); el.classList.remove('hot');
+    const on=(S.step===1&&i===0)||(S.step===2&&i===1)||(S.step===3&&i===2)||(S.step===4&&i===3)||(S.step===5&&i===4)||(S.step===6&&i===5);
+    if(on){ el.classList.add('on'); if(i>=3) el.classList.add('hot'); }
+  });
+}
+
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',function(){
+  S.playing=!S.playing;
+  playBtn.textContent=S.playing?'⏸ 暂停':'▶ 播放';
+});
+document.getElementById('reset').addEventListener('click',function(){
+  S.playing=false; playBtn.textContent='▶ 播放';
+  S.particles.forEach(function(p,i){ p.t=(i%16)/16; });
+  S.dotP=0;
+  S.A.vert=0; S.A.pres=0; S.A.top=0; S.A.surfP=0; S.A.surf=0;
+  setStep(1);
+});
+document.getElementById('prev').addEventListener('click',function(){ setStep(S.step-1); });
+document.getElementById('next').addEventListener('click',function(){ setStep(S.step+1); });
+document.getElementById('iso').addEventListener('change',function(e){ S.showIso=e.target.checked; });
+const spd=document.getElementById('speed');
+spd.addEventListener('input',function(){ S.speed=parseFloat(spd.value); document.getElementById('spdv').textContent=S.speed.toFixed(1)+'×'; });
+
+/* ================= 启动 ================= */
+resize();
+setStep(1);
+requestAnimationFrame(function(t){ last=t; tick(t); });
+})();
+</script>
+
+
+</body></html>
