@@ -32,14 +32,14 @@
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
         box-shadow:0 8px 26px -18px rgba(31,43,56,.35);}
-  .stage{padding:12px 12px 0;overflow:hidden;}
-  canvas{width:100%;display:block;aspect-ratio:1100/700;border-radius:10px;}
-  .chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:12px 14px 15px;}
-  .chip{font-size:12.5px;padding:6px 11px;border-radius:999px;background:#f2f6fa;color:var(--ink2);
-        border:1px solid transparent;transition:all .35s ease;white-space:nowrap;}
-  .chip.on{background:#e8f1f8;color:#1c5578;border-color:#b9d5e8;font-weight:600;}
-  .chip.on.hot{background:#fdeee9;color:#b8402a;border-color:#f2c3b6;}
-  .chain .arw{color:#c3cfda;font-size:12px;}
+  .stage{padding:12px 12px 0;overflow:hidden;position:relative;}
+  canvas{width:100%;display:block;aspect-ratio:1100/660;border-radius:10px;}
+  .ctrlbar{position:absolute;left:40px;right:40px;bottom:12px;display:flex;align-items:center;
+           gap:9px;flex-wrap:wrap;justify-content:center;}
+  .ctrlbar button{flex:0 0 auto;padding:8px 14px;}
+  .ctrlbar button.primary{flex:0 0 auto;}
+  .ctrlbar .sw{margin-left:6px;}
+  .ctrlbar .spd{flex:1;min-width:150px;max-width:340px;}
 
   .panel{display:flex;flex-direction:column;gap:12px;}
   .steps{padding:12px;display:flex;flex-direction:column;gap:8px;}
@@ -84,30 +84,22 @@
 
   <main>
     <section class="card stage">
-      <canvas id="cv" width="2040" height="1298"></canvas>
-      <div class="chain" id="chain"><span class="chip">图a：均匀大气</span><span class="arw">▸</span><span class="chip">图b：冷热不均·垂直运动</span><span class="arw">▸</span><span class="chip">同一水平面气压差异</span><span class="arw">▸</span><span class="chip">高空：空气水平运动</span><span class="arw">▸</span><span class="chip">近地面气压变化</span><span class="arw">▸</span><span class="chip on hot">近地面回流·闭合环流</span></div>
+      <canvas id="cv" width="2040" height="1224"></canvas>
+      <div class="ctrlbar">
+        <button class="primary" id="play">⏸ 暂停</button>
+        <button id="reset">⟲ 重置</button>
+        <button id="prev">上一步</button>
+        <button id="next">下一步</button>
+        <label class="sw"><input type="checkbox" id="iso" checked="checked"> 显示等压面</label>
+        <div class="spd"><span>速度</span><input type="range" id="speed" min="0.4" max="2" step="0.1" value="1"><span id="spdv">1.0×</span></div>
+      </div>
     </section>
 
     <aside class="panel">
       <div class="card">
         <div class="ttl" style="padding:14px 14px 0;">形成过程六步</div>
-        <div class="steps" id="steps"><div class="step"><div class="no">1</div><div><div class="tt">均匀静止的大气<span class="tag">图a</span></div><div class="dd">假设地表均匀、大气静止：等压面相互平行，同一水平面上各处气压相等。</div></div></div><div class="step"><div class="no">2</div><div><div class="tt">地面冷热不均 → 空气垂直运动<span class="tag">图b</span></div><div class="dd">A 地受热多，空气膨胀上升；B、C 地受热少，空气冷却收缩下沉。</div></div></div><div class="step"><div class="no">3</div><div><div class="tt">同一水平面产生气压差异<span class="tag">等压面弯曲</span></div><div class="dd">高空：A 上空堆积成高压，B、C 上空流失成低压；此时近地面气压尚未变化。</div></div></div><div class="step"><div class="no">4</div><div><div class="tt">高层大气先产生水平运动<span class="tag">高空</span></div><div class="dd">A 上空为高压、B、C 上空为低压，高空大气先行运动：由 A 上空流向 B、C 上空。</div></div></div><div class="step"><div class="no">5</div><div><div class="tt">近地面气压发生变化<span class="tag">气压变化</span></div><div class="dd">中心流出区空气质量损失，近地面形成低气压；两侧空气质量增加，低空气压增大。</div></div></div><div class="step active"><div class="no">6</div><div><div class="tt">近地面回流，闭合环流形成<span class="tag">图c</span></div><div class="dd">近地面大气在水平气压梯度力作用下由两侧流向中心，与高空首尾相接，构成闭合热力环流圈。</div></div></div></div>
+        <div class="steps" id="steps"><div class="step"><div class="no">1</div><div><div class="tt">均匀静止的大气<span class="tag">图a</span></div><div class="dd">假设地表均匀、大气静止：等压面相互平行，同一水平面上各处气压相等。</div></div></div><div class="step active"><div class="no">2</div><div><div class="tt">地面冷热不均 → 空气垂直运动<span class="tag">图b</span></div><div class="dd">A 地受热多，空气膨胀上升；B、C 地受热少，空气冷却收缩下沉。</div></div></div><div class="step"><div class="no">3</div><div><div class="tt">同一水平面产生气压差异<span class="tag">等压面弯曲</span></div><div class="dd">高空：A 上空堆积成高压，B、C 上空流失成低压；此时近地面气压尚未变化。</div></div></div><div class="step"><div class="no">4</div><div><div class="tt">高层大气先产生水平运动<span class="tag">高空</span></div><div class="dd">A 上空为高压、B、C 上空为低压，高空大气先行运动：由 A 上空流向 B、C 上空。</div></div></div><div class="step"><div class="no">5</div><div><div class="tt">近地面气压发生变化<span class="tag">气压变化</span></div><div class="dd">中心流出区空气质量损失，近地面形成低气压；两侧空气质量增加，低空气压增大。</div></div></div><div class="step"><div class="no">6</div><div><div class="tt">近地面回流，闭合环流形成<span class="tag">图c</span></div><div class="dd">近地面大气在水平气压梯度力作用下由两侧流向中心，与高空首尾相接，构成闭合热力环流圈。</div></div></div></div>
       </div>
-
-      <div class="card controls">
-        <div class="row">
-          <button class="primary" id="play">⏸ 暂停</button>
-          <button id="reset">⟲ 重置</button>
-        </div>
-        <div class="row">
-          <button id="prev" style="flex:1">上一步</button>
-          <button id="next" style="flex:1">下一步</button>
-        </div>
-        <label class="sw"><input type="checkbox" id="iso" checked="checked"> 显示等压面</label>
-        <div class="spd"><span>速度</span><input type="range" id="speed" min="0.4" max="2" step="0.1" value="1"><span id="spdv">1.0×</span></div>
-      </div>
-
-      <div class="note" id="note"><b>第四步 · 闭合环流：</b>近地面出现<b>水平气压梯度</b>，大气由两侧（高压）流向中心（低压）（橙色箭头）——与高空水平气流、垂直运动首尾相接，<b>构成闭合热力环流圈</b>，这就是热力环流。</div>
     </aside>
   </main>
 </div>
@@ -117,7 +109,7 @@
 'use strict';
 
 /* ================= 基础参数 ================= */
-const W = 1100, H = 700;
+const W = 1100, H = 660;
 const GT = 520;                       // 地面
 const XB = 240, XA = 540, XC = 840;   // B、A、C 三地
 const T = 160, B = 440, CR = 55;      // 环流通道上下边与圆角（顶部达高空等压面附近）
@@ -186,9 +178,11 @@ const MID={rise:0.066, top:0.316, sink:0.567, surf:0.816};
 
 /* ================= 等压面 ================= */
 const bell = x => Math.exp(-Math.pow((x-XA)/240,2));
-function isoU(x,def){ return 150 - 34*bell(x)*def; }   // 高空等压面：A 处上凸（高压）
-function isoM(x,def){ return 310 -  8*bell(x)*def; }   // 中间等压面：弯曲幅度介于高空与近地面之间
-function isoL(x,def){ return 478 + 26*bell(x)*def; }   // 近地面等压面：A 处下凹（低压）
+/* 等压面弯曲形状：A 处偏离最大；B、C 一侧随远离 A 逐渐加大偏离并越过受热前位置（另一侧反向） */
+const sideDev = x => 1 - Math.exp(-Math.pow(Math.abs(x-XA)/280, 2));   // 侧向偏离（边缘趋于饱和）
+function isoU(x,def){ return 150 + def*( 30*sideDev(x) - 38*bell(x) ); }  // 高空：A 上凸（高压），B、C 侧下沉（低压）
+function isoM(x,def){ return 310 + def*(  8*sideDev(x) - 10*bell(x) ); }  // 中间：幅度介于高空与近地面之间
+function isoL(x,def){ return 478 + def*( 26*bell(x) - 24*sideDev(x) ); }  // 近地面：A 下凹（低压），B、C 侧上凸（高压）
 
 /* ================= 画布 ================= */
 const cvs=document.getElementById('cv');
@@ -291,18 +285,16 @@ function bigArrow(x1,y1,x2,y2,color,alpha,wid){
   if(alpha<0.03) return;
   const ang=Math.atan2(y2-y1,x2-x1), len=Math.hypot(x2-x1,y2-y1);
   const sw=wid||15;
-  /* 一支完整箭头沿线段真实行进：箭尾起点=1，箭头终点=2。
-     箭尾坐标 t0 由 0 匀速走到 (len-gLen)，此时箭头尖恰好抵达线段末端。 */
-  const gLen=Math.max(46,Math.min(112,len*0.46));   // 箭头总长（含头部）
+  /* 一支完整箭头沿线段从头走到尾：出发时箭尾压在线段起点 1，
+     箭尖抵达线段终点 2 后才重新从起点出发，全程不淡出 */
+  const gLen=Math.max(46,Math.min(112,len*0.44));   // 箭头总长（含头部）
   const head=Math.min(30,gLen*0.38);                // 箭头头部长度
   const body=gLen-head;
   const travel=Math.max(2,len-gLen);                // 箭尾可走的距离
   const u=((S.arrowT%1)+1)%1;
-  const fade=Math.max(0,Math.min(1,Math.min(u,1-u)/0.06));
-  if(fade<0.04) return;
   const t0=u*travel;
   ctx.save();
-  ctx.globalAlpha=alpha*fade;
+  ctx.globalAlpha=alpha;
   ctx.translate(x1+Math.cos(ang)*t0, y1+Math.sin(ang)*t0);
   ctx.rotate(ang);
   ctx.fillStyle=color;
@@ -477,16 +469,16 @@ function draw(dt){
     ctx.restore();
   }
 
-  /* 大箭头：垂直运动（第2步）——随环流增高同步加长 */
-  bigArrow(XA,428,XA,268,C_RISE,A.vert,17);      // A 受热上升
-  bigArrow(XB,268,XB,398,C_SINK,A.vert,15);      // B 冷却下沉
-  bigArrow(XC,268,XC,398,C_SINK,A.vert,15);      // C 冷却下沉
+  /* 大箭头：垂直运动（第2步）——与环形通道的竖直段严格对齐，从段首走到段尾 */
+  bigArrow(XA,B-CR,XA,T+CR,C_RISE,A.vert,17);   // A 受热上升：近地面 → 高空
+  bigArrow(XB,T+CR,XB,B-CR,C_SINK,A.vert,15);   // B 冷却下沉：高空 → 近地面
+  bigArrow(XC,T+CR,XC,B-CR,C_SINK,A.vert,15);   // C 冷却下沉：高空 → 近地面
 
-  /* 大箭头：高空水平运动（第4步）与近地面回流（第5步） */
-  bigArrow(496,T,368,T,C_TOP,A.top,15);
-  bigArrow(584,T,712,T,C_TOP,A.top,15);
-  bigArrow(368,440,496,440,C_SURF,A.surf,15);
-  bigArrow(712,440,584,440,C_SURF,A.surf,15);
+  /* 大箭头：高空水平运动（第4步）与近地面回流（第6步），端点即环形通道的直线段两端 */
+  bigArrow(XA+CR,T,XC-CR,T,C_TOP,A.top,15);     // A 上空 → C 上空
+  bigArrow(XA-CR,T,XB+CR,T,C_TOP,A.top,15);     // A 上空 → B 上空
+  bigArrow(XC-CR,B,XA+CR,B,C_SURF,A.surf,15);   // C 近地面 → A
+  bigArrow(XA-CR,B,XB+CR,B,C_SURF,A.surf,15);   // B 近地面 → A
 
   /* 高 / 低 气压标注：高空第3步起，近地面第5步气压变化后标注（第6步才有回流箭头） */
   if(A.pres>0.02){
@@ -543,16 +535,7 @@ function draw(dt){
       txt(s,XA-44,194+i*18,{font:'600 14px '+FONT,color:'#2e6fa8',align:'right',alpha:p5});
     });
   }
-  const p6=A.surf;
-  if(p6>0.02){
-    ctx.save();
-    ctx.globalAlpha=p6;
-    roundRect(240,622,620,44,12);
-    ctx.fillStyle='rgba(255,252,248,.9)'; ctx.fill();
-    ctx.lineWidth=1.2; ctx.strokeStyle='rgba(224,118,60,.5)'; ctx.stroke();
-    ctx.restore();
-    txt('近地面出现水平气压梯度 → 大气由两侧流向中心，构成闭合环流',550,644,{font:'700 16px '+FONT,color:'#a8441f',alpha:p6});
-  }
+  /* 第6步：近地面回流箭头与闭合环流 */
 
   /* 步骤角标 */
   ctx.save();
@@ -580,7 +563,7 @@ const STEPS=[
   n:'<b>图a · 起点：</b>假设地面性质均一、大气静止。观察空气分子：密度<b>由近地面向高空逐渐变稀疏</b>，但<b>同一高度上三地（A、B、C）分子数目相同</b>；各高度等压面水平平行，同一水平面上气压处处相等，大气维持静止。'},
  {t:'地面冷热不均 → 空气垂直运动',tag:'图b',
   d:'A 地受热多，空气膨胀上升；B、C 地受热少，空气冷却收缩下沉。',
-  n:'<b>图b · 直接表现：</b>A 地受热多，空气膨胀 → <span class="hot">上升</span>：<b>低空的一部分分子</b>（<span class="hot">红色</span>）缓慢向上运动，均匀地停在上方不同高度层上；B、C 地冷却收缩 → <span class="cold">下沉</span>：<b>高层的一部分分子</b>（<span class="cold">蓝色</span>）向下运动，均匀地停在下方不同高度层上。<br>随后每层分子重新<b>均匀分布</b>。每根气柱分子总数始终不变（本图中为 66 个）——只是高低空数目重新分配，密度出现差异。<br><br><b>高空气压变化</b>：A 上空空气分子堆积 → <span class="hot">气压升高</span>；B、C 上空空气分子流失 → <span class="cold">气压降低</span>。于是高空大气在<b>水平气压梯度力</b>的作用下，由高气压区向低气压区运动——<b>先生成高空水平气流</b>。'},
+  n:'<b>图b · 直接表现：</b>A 地受热多，空气膨胀 → <span class="hot">上升</span>：<b>低空的一部分分子</b>（<span class="hot">红色</span>）缓慢向上运动，均匀地停在上方不同高度层上；B、C 地冷却收缩 → <span class="cold">下沉</span>：<b>高层的一部分分子</b>（<span class="cold">蓝色</span>）向下运动，均匀地停在下方不同高度层上。<br>随后每层分子重新<b>均匀分布</b>。每根气柱分子总数始终不变（本图中为 66 个）——只是高低空数目重新分配，密度出现差异。'},
  {t:'同一水平面产生气压差异',tag:'等压面弯曲',
   d:'高空：A 上空堆积成高压，B、C 上空流失成低压；此时近地面气压尚未变化。',
   n:'<b>高空先行：</b>垂直运动使空气质量在上空重新分配——<span class="hot">A 上空堆积 → 高压</span>、<span class="cold">B、C 上空流失 → 低压</span>，高空等压面随之弯曲：<b>高压处上凸、低压处下凹</b>（虚线为受热前位置）。<br><b>注意：此时近地面气压还没有变化</b>，近地面等压面仍保持水平——要等高空水平运动把空气质量输送开之后，近地面气压才会相应改变（见第 5 步）。'},
@@ -594,9 +577,9 @@ const STEPS=[
   d:'近地面大气在水平气压梯度力作用下由两侧流向中心，与高空首尾相接，构成闭合热力环流圈。',
   n:'<b>第四步 · 闭合环流：</b>近地面出现<b>水平气压梯度</b>，大气由两侧（高压）流向中心（低压）（橙色箭头）——与高空水平气流、垂直运动首尾相接，<b>构成闭合热力环流圈</b>，这就是热力环流。'}
 ];
-const CHAIN=['图a：均匀大气','图b：冷热不均·垂直运动','同一水平面气压差异','高空：空气水平运动','近地面气压变化','近地面回流·闭合环流'];
 
 const stepsEl=document.getElementById('steps');
+stepsEl.innerHTML='';                       /* 幂等：即使脚本被重复执行也不会出现重复步骤 */
 STEPS.forEach(function(s,i){
   const el=document.createElement('div');
   el.className='step'+(i===0?' active':'');
@@ -604,25 +587,11 @@ STEPS.forEach(function(s,i){
   el.addEventListener('click',function(){ setStep(i+1); });
   stepsEl.appendChild(el);
 });
-const chainEl=document.getElementById('chain');
-CHAIN.forEach(function(c,i){
-  if(i){ const a=document.createElement('span'); a.className='arw'; a.textContent='▸'; chainEl.appendChild(a); }
-  const c2=document.createElement('span');
-  c2.className='chip'; c2.textContent=c;
-  chainEl.appendChild(c2);
-});
-const chips=chainEl.querySelectorAll('.chip');
 
 function setStep(n){
   S.step=clamp(n,1,6);
   S.autoT=0;
   document.querySelectorAll('.step').forEach(function(el,i){ el.classList.toggle('active',i===S.step-1); });
-  document.getElementById('note').innerHTML=STEPS[S.step-1].n;
-  chips.forEach(function(el,i){
-    el.classList.remove('on'); el.classList.remove('hot');
-    const on=(S.step===1&&i===0)||(S.step===2&&i===1)||(S.step===3&&i===2)||(S.step===4&&i===3)||(S.step===5&&i===4)||(S.step===6&&i===5);
-    if(on){ el.classList.add('on'); if(i>=3) el.classList.add('hot'); }
-  });
 }
 
 const playBtn=document.getElementById('play');
