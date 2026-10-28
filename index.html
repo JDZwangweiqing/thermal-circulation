@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<html lang="zh-CN">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>热力环流形成过程演示（图a→b→c）</title>
@@ -84,13 +84,13 @@
 
   <main>
     <section class="card stage">
-      <canvas id="cv" width="2040" height="1224"></canvas>
+      <canvas id="cv"></canvas>
       <div class="ctrlbar">
         <button class="primary" id="play">⏸ 暂停</button>
         <button id="reset">⟲ 重置</button>
         <button id="prev">上一步</button>
         <button id="next">下一步</button>
-        <label class="sw"><input type="checkbox" id="iso" checked="checked"> 显示等压面</label>
+        <label class="sw"><input type="checkbox" id="iso" checked> 显示等压面</label>
         <div class="spd"><span>速度</span><input type="range" id="speed" min="0.4" max="2" step="0.1" value="1"><span id="spdv">1.0×</span></div>
       </div>
     </section>
@@ -98,7 +98,7 @@
     <aside class="panel">
       <div class="card">
         <div class="ttl" style="padding:14px 14px 0;">形成过程六步</div>
-        <div class="steps" id="steps"><div class="step"><div class="no">1</div><div><div class="tt">均匀静止的大气<span class="tag">图a</span></div><div class="dd">假设地表均匀、大气静止：等压面相互平行，同一水平面上各处气压相等。</div></div></div><div class="step"><div class="no">2</div><div><div class="tt">地面冷热不均 → 空气垂直运动<span class="tag">图b</span></div><div class="dd">A 地受热多，空气膨胀上升；B、C 地受热少，空气冷却收缩下沉。</div></div></div><div class="step active"><div class="no">3</div><div><div class="tt">同一水平面产生气压差异<span class="tag">等压面弯曲</span></div><div class="dd">高空：A 上空堆积成高压，B、C 上空流失成低压；此时近地面气压尚未变化。</div></div></div><div class="step"><div class="no">4</div><div><div class="tt">高层大气先产生水平运动<span class="tag">高空</span></div><div class="dd">A 上空为高压、B、C 上空为低压，高空大气先行运动：由 A 上空流向 B、C 上空。</div></div></div><div class="step"><div class="no">5</div><div><div class="tt">近地面气压发生变化<span class="tag">气压变化</span></div><div class="dd">中心流出区空气质量损失，近地面形成低气压；两侧空气质量增加，低空气压增大。</div></div></div><div class="step"><div class="no">6</div><div><div class="tt">近地面回流，闭合环流形成<span class="tag">图c</span></div><div class="dd">近地面大气在水平气压梯度力作用下由两侧流向中心，与高空首尾相接，构成闭合热力环流圈。</div></div></div></div>
+        <div class="steps" id="steps"></div>
       </div>
     </aside>
   </main>
@@ -271,6 +271,12 @@ function txt(s,x,y,o){
   ctx.fillStyle=o.color||'#33414f';
   ctx.textAlign=o.align||'center';
   ctx.textBaseline=o.baseline||'middle';
+  if(o.halo){                       /* 白色描边光晕：压在分子点之上仍清晰可读 */
+    ctx.lineJoin='round';
+    ctx.lineWidth=o.halo===true?4:o.halo;
+    ctx.strokeStyle='rgba(255,255,255,.92)';
+    ctx.strokeText(s,x,y);
+  }
   ctx.fillText(s,x,y);
   ctx.restore();
 }
@@ -420,14 +426,14 @@ function draw(dt){
     const lp=clamp((S.dotP-d.delay)/(1-d.delay),0,1);
     const e=lp<0.5 ? 2*lp*lp : 1-Math.pow(-2*lp+2,2)/2;   /* easeInOut */
     const x=d.x0+(d.x1-d.x0)*e, y=d.y0+(d.y1-d.y0)*e;
-    ctx.globalAlpha=0.75;
-    ctx.fillStyle='#6b8ba8';                                /* 流出前：一律灰蓝，不突出 */
-    ctx.beginPath(); ctx.arc(x,y,2.1,0,7); ctx.fill();
+    ctx.globalAlpha=0.82;
+    ctx.fillStyle='#5b7f9e';                                /* 流出前：一律灰蓝，不突出 */
+    ctx.beginPath(); ctx.arc(x,y,4.0,0,7); ctx.fill();
     if(d.mv && lp>0.02){                                    /* 开始流出后才红/蓝突出 */
       const hl=clamp(lp/0.18,0,1);
-      ctx.globalAlpha=0.75*hl;
+      ctx.globalAlpha=0.9*hl;
       ctx.fillStyle=d.cx===XA?'#e0503a':'#2f6fd0';
-      ctx.beginPath(); ctx.arc(x,y,2.7,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x,y,5.3,0,7); ctx.fill();
     }
   }
   ctx.globalAlpha=1;
@@ -478,7 +484,7 @@ function draw(dt){
   bigArrow(XA+CR,T,XC-CR,T,C_TOP,A.top,15);     // A 上空 → C 上空
   bigArrow(XA-CR,T,XB+CR,T,C_TOP,A.top,15);     // A 上空 → B 上空
   bigArrow(XC-CR,B,XA+CR,B,C_SURF,A.surf,15);   // C 近地面 → A
-  bigArrow(XA-CR,B,XB+CR,B,C_SURF,A.surf,15);   // B 近地面 → A
+  bigArrow(XB+CR,B,XA-CR,B,C_SURF,A.surf,15);   // B 近地面 → A
 
   /* 高 / 低 气压标注：高空第3步起，近地面第5步气压变化后标注（第6步才有回流箭头） */
   if(A.pres>0.02){
@@ -488,10 +494,10 @@ function draw(dt){
     txt('高空',XA-46,isoU(XA,A.pres)-28,{font:'12px '+FONT,color:'#93a3b2',align:'right',alpha:A.pres});
   }
   if(A.surfP>0.02){
-    txt('高',XB,462,{font:'700 22px '+FONT,color:C_HIGH,alpha:A.surfP});
-    txt('高',XC,462,{font:'700 22px '+FONT,color:C_HIGH,alpha:A.surfP});
-    txt('低',XA,462,{font:'700 22px '+FONT,color:C_LOW,alpha:A.surfP});
-    txt('近地面',XA-52,462,{font:'12px '+FONT,color:'#93a3b2',align:'right',alpha:A.surfP});
+    txt('高',XB,466,{font:'700 22px '+FONT,color:C_HIGH,alpha:A.surfP,halo:4});
+    txt('高',XC,466,{font:'700 22px '+FONT,color:C_HIGH,alpha:A.surfP,halo:4});
+    txt('低',XA,466,{font:'700 22px '+FONT,color:C_LOW,alpha:A.surfP,halo:4});
+    txt('近地面',XA-52,466,{font:'12px '+FONT,color:'#93a3b2',align:'right',alpha:A.surfP,halo:3});
   }
 
   /* 第2步标注：高空气压变化（红字，第3步起淡出） */
@@ -618,6 +624,5 @@ setStep(1);
 requestAnimationFrame(function(t){ last=t; tick(t); });
 })();
 </script>
-
-
-</body></html>
+</body>
+</html>
